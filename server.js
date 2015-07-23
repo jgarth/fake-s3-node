@@ -3,6 +3,7 @@ var http = require('http');
 var util = require('util');
 
 http.createServer(function(req, res) {
+  var command = 'curl -X POST';
   var form = new multiparty.Form({
     autoFiles: true,
     uploadDir: './images/'
@@ -15,41 +16,16 @@ http.createServer(function(req, res) {
     console.log('Error parsing form: ' + err.stack);
   });
 
-  // Parts are emitted when parsing the form
-  form.on('part', function(part) {
-    // You *must* act on the part by reading it
-    // NOTE: if you want to ignore it, just call "part.resume()"
-
-    if (!part.filename) {
-
-      console.log('got field named "' + part.name + "'");
-
-      // ignore field's content
-      part.resume();
-    }
-
-    if (part.filename) {
-      // filename is defined when this is a file
-      count++;
-      console.log('got file named ' + part.name);
-      // ignore file's content here
-      part.resume();
-    }
-
-    part.on('error', function(err) {
-      console.log("ERROR: " + err);
-      // decide what to do
-    });
-  });
-
   form.on('field', function(name, value) {
-    console.log("Got field named: '" + name + "' with value '" + value + "'")
+    console.log("Got field named: '" + name + "' with value '" + value + "'");
+    command += ' -F "' + name + '=' + value + '"';
   });
 
   // Close emitted after form parsed
   form.on('file', function(name, file) {
     console.log('Got file named: ' + name + '!');
     console.log('streamed to: ' + file.path + ' (' + file.size + ' bytes)');
+    command += ' -F "file=@' + file.path + '"';
   });
 
 
@@ -59,7 +35,8 @@ http.createServer(function(req, res) {
     res.setHeader('Content-Type', 'text/plain');
     res.end();
 
-    console.log("---- REQUEST DONE ----\n\n")
+    console.log("---- REQUEST DONE ----\n\n");
+    console.log(command);
   });
 
   // Parse req
